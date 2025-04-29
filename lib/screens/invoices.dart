@@ -7,14 +7,16 @@ import 'package:intl/intl.dart';
 
 
 class InvoicesPage extends StatefulWidget {
+  const InvoicesPage({super.key});
+
+
   @override
-  _InvoicesPageState createState() => _InvoicesPageState();
+  InvoicesPageState createState() => InvoicesPageState();
 
 }
 
-class _InvoicesPageState extends State<InvoicesPage> {
+class InvoicesPageState extends State<InvoicesPage> {
   final InvoiceDatabase _invoiceDatabase = InvoiceDatabase();
-  final ContactDatabase _contactDatabase = ContactDatabase();
   late Future<List<Invoice>> _invoices;
   late Future<Map<int, String>> _contactsMap;
 
@@ -28,6 +30,8 @@ class _InvoicesPageState extends State<InvoicesPage> {
     final contacts = await ContactDatabase().getAllContacts(); // You need to have ContactDatabase
     return { for (var contact in contacts) contact.id!: contact.name };
   }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
