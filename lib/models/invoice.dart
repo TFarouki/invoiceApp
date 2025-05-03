@@ -1,7 +1,7 @@
 class Invoice {
   int? id;
-  String refInvoice;
-  String date;
+  int refInvoice;
+  DateTime date;
   int contactId; // Client
   double totalAmount;
   String action; // "Buy" or "Sell"
@@ -27,6 +27,11 @@ class Invoice {
       'action': action,
       'payment_method': paymentMethod,
     };
+  }
+
+  String invoiceRef(){
+    int currentYear = this.date.year;
+    return 'FaV$currentYear${(this.refInvoice + 1).toString().padLeft(6, '0')}';
   }
 
   factory Invoice.fromMap(Map<String, dynamic> map) {

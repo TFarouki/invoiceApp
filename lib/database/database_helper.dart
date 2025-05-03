@@ -4,7 +4,7 @@ import 'package:path_provider/path_provider.dart';
 
 class DatabaseHelper {
   static const _databaseName = "InvoiceManager.db";
-  static const _databaseVersion = 25; // Increment the version!
+  static const _databaseVersion = 26; // Increment the version!
 
   DatabaseHelper._privateConstructor();
   static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
@@ -72,7 +72,7 @@ class DatabaseHelper {
     await db.execute('''
     CREATE TABLE invoices (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      ref_invoice TEXT,
+      ref_invoice INTEGER,
       date TEXT,
       total_amount REAL,
       action TEXT,

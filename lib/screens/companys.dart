@@ -227,3 +227,6 @@ class _CompanysPageState extends State<CompanysPage> {
     );
   }
 }
+
+//TODO: use set logo as an App Icon (dynamic icon for my app)
+//TODO: no maining for the delete button

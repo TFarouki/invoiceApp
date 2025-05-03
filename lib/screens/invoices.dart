@@ -57,12 +57,12 @@ class InvoicesPageState extends State<InvoicesPage> {
                 final invoice = invoices[index];
                 final bool isSell = invoice.action == 'Sell';
                 final clientName = contactsMap[invoice.contactId] ?? 'Unknown Client';
-                String formattedDate = DateFormat('dd-MM-yyyy').format(DateTime.parse(invoice.date));
+                //String formattedDate = DateFormat('dd-MM-yyyy').format(DateTime.parse(invoice.date));
 
                 return _buildInvoiceCard(
                   refInvoice: invoice.refInvoice,
                   clientName: clientName,
-                  date: formattedDate,
+                  date: invoice.date,
                   paymentMethod: invoice.paymentMethod,
                   totalAmount: invoice.totalAmount,
                   isSell: isSell,
@@ -87,8 +87,8 @@ class InvoicesPageState extends State<InvoicesPage> {
 
   Widget _buildInvoiceCard({
     required String clientName,
-    required String refInvoice,
-    required String date,
+    required int refInvoice,
+    required DateTime date,
     required String paymentMethod,
     required double totalAmount,
     required bool isSell,
@@ -106,14 +106,14 @@ class InvoicesPageState extends State<InvoicesPage> {
           Expanded(
             child: ListTile(
               title: Text(
-                refInvoice,
+                refInvoice.toString(),
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(clientName, style: TextStyle(color: Colors.grey)),
-                  Text(date, style: TextStyle(color: Colors.grey)),
+                  Text(date.toLocal().toString(), style: TextStyle(color: Colors.grey)),
                 ],
               ),
               trailing: Row(
@@ -155,3 +155,8 @@ class InvoicesPageState extends State<InvoicesPage> {
     return Icon(icon, color: Colors.blue);
   }
 }
+
+//TODO: dismsable invoice
+//TODO: tap invoice to open (update or print)
+//TODO: after save new invoice return to this screen and refresh to display new invoice
+//TODO: tree and filters and search options

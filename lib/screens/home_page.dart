@@ -176,3 +176,5 @@ class _HomePageState extends State<HomePage> {
     );
   }
 }
+
+//TODO: Total invoices counter for sell and buy

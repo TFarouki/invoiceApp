@@ -48,6 +48,7 @@ class InvoiceDatabase {
 
     return Sqflite.firstIntValue(result) ?? 0;
   }
+  //TODO: insted of count i should use last id of invoice so when invoice was deleted there is no chance for double refID
 
   Future<int> deleteInvoice(int id) async {
     final db = await dbHelper.database;

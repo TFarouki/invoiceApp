@@ -184,3 +184,9 @@ class _ContactsPageState extends State<ContactsPage> {
     );
   }
 }
+
+//TODO: search bar
+//TODO: display as grid or table
+//TODO: change the delete button to a dismissible widget
+//TODO: add a new contact button as floating action button
+//TODO: move form to newContactPage

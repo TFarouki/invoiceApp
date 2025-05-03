@@ -156,6 +156,11 @@ class _NewInvoicesPageState extends State<NewInvoicesPage> {
     );
   }
 
+  String _invoiceRef(invoiceCount,invoiceDate){
+    int currentYear = invoiceDate.year;
+    return 'FaV$currentYear${(invoiceCount + 1).toString().padLeft(6, '0')}';
+  }
+
   void _updateTotal() {
     double total = 0.0;
     for (var detail in _invoiceDetails) {
@@ -167,21 +172,17 @@ class _NewInvoicesPageState extends State<NewInvoicesPage> {
   Future<void> _saveInvoice() async {
     if (_formKey.currentState!.validate() && _selectedContact != null) {
       final currentYear = DateTime.now().year;
-      String refInvoice;
-      int invoiceCount;
+      int refInvoice;
 
       if (_action == 'Sell') {
-        invoiceCount = await InvoiceDatabase().getSellCountsByYear(currentYear);
-        refInvoice = 'FaV$currentYear${(invoiceCount + 1).toString().padLeft(6, '0')}';
+        refInvoice = await InvoiceDatabase().getSellCountsByYear(currentYear);
       } else {
-        // Assume 'Buy' for other actions
-        invoiceCount = await InvoiceDatabase().getBuyCountsByYear(currentYear);
-        refInvoice = 'FaA$currentYear${(invoiceCount + 1).toString().padLeft(6, '0')}';
+        refInvoice = await InvoiceDatabase().getBuyCountsByYear(currentYear);
       }
 
       final invoice = Invoice(
         refInvoice: refInvoice,
-        date: DateTime.now().toIso8601String(),
+        date: DateTime.now(),
         totalAmount: double.tryParse(_totalController.text) ?? 0.0,
         action: _action,
         paymentMethod: _paymentMethod,
@@ -433,3 +434,6 @@ class _NewInvoicesPageState extends State<NewInvoicesPage> {
     );
   }
 }
+
+//TODO: when user tap return button redirect to the invoicesPage
+//TODO: insted of create button change to save and add print button and share(pdf) button

@@ -221,3 +221,9 @@ class _ProductsPageState extends State<ProductsPage> {
     );
   }
 }
+
+//TODO: add Category of product
+//TODO: change the delete button to a dismissible widget
+//TODO: add search bar
+//TODO: display as table or grid
+//TODO: add floating action button to add product and category (move form to newProductPage)
