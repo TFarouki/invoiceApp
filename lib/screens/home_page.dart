@@ -24,7 +24,7 @@ class _HomePageState extends State<HomePage> {
 
   final ContactDatabase _contactDatabase = ContactDatabase();
   final ProductDatabase _productDatabase = ProductDatabase();
-  final InvoiceDatabase _invoiceDatabase = InvoiceDatabase();
+  final InvoiceDatabase _invoiceDatabase = InvoiceDatabase.instance;
 
   @override
   void initState() {

@@ -43,3 +43,6 @@ class Company {
     );
   }
 }
+
+//TODO: phone field should be a phone text input;
+//TODO: siren field should be a numaric input;

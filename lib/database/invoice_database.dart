@@ -1,67 +1,80 @@
 import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
 import '../models/invoice.dart';
-import '../database/database_helper.dart';
 
 class InvoiceDatabase {
-  final dbHelper = DatabaseHelper.instance;
-  final String tableName = 'invoices';
+  static final InvoiceDatabase instance = InvoiceDatabase._init();
+  static Database? _database;
 
-  Future<int> insertInvoice(Invoice invoice) async {
-    final db = await dbHelper.database;
-    return await db!.insert(tableName, invoice.toMap());
+  InvoiceDatabase._init();
+
+  Future<Database> get database async {
+    if (_database != null) return _database!;
+
+    _database = await _initDB('invoice.db');
+    return _database!;
+  }
+
+  Future<Database> _initDB(String filePath) async {
+    final dbPath = await getDatabasesPath();
+    final path = join(dbPath, filePath);
+
+    return await openDatabase(
+      path,
+      version: 1,
+      onCreate: _createDB,
+    );
+  }
+
+  Future _createDB(Database db, int version) async {
+    await db.execute('''
+      CREATE TABLE invoices (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        refInvoice INTEGER,
+        date INTEGER,
+        action TEXT,
+        contactId INTEGER,
+        total REAL,
+        paymentMethod TEXT
+      )
+    ''');
+  }
+
+  Future<int> createInvoice(Invoice invoice) async {
+    final db = await instance.database;
+    return await db.insert('invoices', invoice.toMap());
   }
 
   Future<List<Invoice>> getAllInvoices() async {
-    final db = await dbHelper.database;
-    final List<Map<String, dynamic>> maps = await db!.query(tableName);
-    return List.generate(maps.length, (i) {
-      return Invoice.fromMap(maps[i]);
-    });
+    final db = await instance.database;
+    final result = await db.query('invoices');
+    return result.map((map) => Invoice.fromMap(map)).toList();
   }
 
-  Future<int> getSellCountsByYear(int year) async {
-    final db = await dbHelper.database;
-    if (db == null) {
-      return 0; // Return 0 if db is null
-    }
-
-    final result = await db.rawQuery('''
-    SELECT COUNT(*)
-    FROM invoices
-    WHERE strftime('%Y', date) = ? AND action = 'Sell'
-  ''', [year.toString()]);
-
-    return Sqflite.firstIntValue(result) ?? 0;
+  Future<int> getNextSellRefInvoice() async {
+    return await _getNextRefInvoiceForAction('Sell');
   }
 
-  Future<int> getBuyCountsByYear(int year) async {
-    final db = await dbHelper.database;
-    if (db == null) {
-      return 0; // Return 0 if db is null
-    }
-
-    final result = await db.rawQuery('''
-    SELECT COUNT(*)
-    FROM invoices
-    WHERE strftime('%Y', date) = ? AND action = 'Buy'
-  ''', [year.toString()]);
-
-    return Sqflite.firstIntValue(result) ?? 0;
-  }
-  //TODO: insted of count i should use last id of invoice so when invoice was deleted there is no chance for double refID
-
-  Future<int> deleteInvoice(int id) async {
-    final db = await dbHelper.database;
-    return await db!.delete(tableName, where: 'id = ?', whereArgs: [id]);
+  Future<int> getNextBuyRefInvoice() async {
+    return await _getNextRefInvoiceForAction('Buy');
   }
 
-  Future<int> updateInvoice(Invoice invoice) async {
-    final db = await dbHelper.database;
-    return await db!.update(
-      tableName,
-      invoice.toMap(),
-      where: 'id = ?',
-      whereArgs: [invoice.id],
+  Future<int> _getNextRefInvoiceForAction(String action) async {
+    final db = await database;
+    final now = DateTime.now();
+    final start = DateTime(now.year).millisecondsSinceEpoch;
+    final end = DateTime(now.year + 1).millisecondsSinceEpoch;
+
+    final result = await db.rawQuery(
+      '''
+      SELECT MAX(refInvoice) as maxRef
+      FROM invoices
+      WHERE date >= ? AND date < ? AND action = ?
+      ''',
+      [start, end, action],
     );
+
+    final maxRef = result.first['maxRef'] as int?;
+    return (maxRef ?? 0) + 1;
   }
 }

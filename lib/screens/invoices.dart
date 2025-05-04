@@ -16,7 +16,7 @@ class InvoicesPage extends StatefulWidget {
 }
 
 class InvoicesPageState extends State<InvoicesPage> {
-  final InvoiceDatabase _invoiceDatabase = InvoiceDatabase();
+  final InvoiceDatabase _invoiceDatabase = InvoiceDatabase.instance;
   late Future<List<Invoice>> _invoices;
   late Future<Map<int, String>> _contactsMap;
 
@@ -64,7 +64,7 @@ class InvoicesPageState extends State<InvoicesPage> {
                   clientName: clientName,
                   date: invoice.date,
                   paymentMethod: invoice.paymentMethod,
-                  totalAmount: invoice.totalAmount,
+                  totalAmount: invoice.total,
                   isSell: isSell,
                 );
               },

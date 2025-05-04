@@ -73,7 +73,7 @@ class DatabaseHelper {
     CREATE TABLE invoices (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       ref_invoice INTEGER,
-      date TEXT,
+      date INTEGER,
       total_amount REAL,
       action TEXT,
       payment_method TEXT,

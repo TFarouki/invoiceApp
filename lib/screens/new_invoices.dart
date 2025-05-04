@@ -171,27 +171,26 @@ class _NewInvoicesPageState extends State<NewInvoicesPage> {
 
   Future<void> _saveInvoice() async {
     if (_formKey.currentState!.validate() && _selectedContact != null) {
-      final currentYear = DateTime.now().year;
       int refInvoice;
 
       if (_action == 'Sell') {
-        refInvoice = await InvoiceDatabase().getSellCountsByYear(currentYear);
+        refInvoice = await InvoiceDatabase.instance.getNextSellRefInvoice();
       } else {
-        refInvoice = await InvoiceDatabase().getBuyCountsByYear(currentYear);
+        refInvoice = await InvoiceDatabase.instance.getNextBuyRefInvoice();
       }
 
       final invoice = Invoice(
         refInvoice: refInvoice,
         date: DateTime.now(),
-        totalAmount: double.tryParse(_totalController.text) ?? 0.0,
+        total: double.tryParse(_totalController.text) ?? 0.0,
         action: _action,
         paymentMethod: _paymentMethod,
         contactId: _selectedContact!.id!,
       );
 
-      final invoiceId = await InvoiceDatabase().insertInvoice(invoice);
+      final invoiceId = await InvoiceDatabase.instance.createInvoice(invoice);
 
-      if (invoiceId != null) {
+      if (invoiceId != 0) {
         for (var detail in _invoiceDetails) {
           detail.invoiceId = invoiceId;
           await _invoiceDetailDatabase.insertInvoiceDetail(detail);
