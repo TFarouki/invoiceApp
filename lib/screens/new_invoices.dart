@@ -10,7 +10,9 @@ import '../models/invoice_detail.dart';
 import '../models/product.dart';
 
 class NewInvoicesPage extends StatefulWidget {
-  const NewInvoicesPage({super.key});
+  final VoidCallback? onInvoiceCreated;
+
+  const NewInvoicesPage({Key? key, this.onInvoiceCreated}) : super(key: key);
 
   @override
   State<NewInvoicesPage> createState() => _NewInvoicesPageState();
@@ -98,7 +100,7 @@ class _NewInvoicesPageState extends State<NewInvoicesPage> {
                                 );
                                 _updateTotal();
                               });
-                              Navigator.pop(context);
+                              if (mounted) Navigator.pop(context, true);
                             },
                             child: Card(
                               clipBehavior: Clip.antiAlias,
@@ -171,46 +173,42 @@ class _NewInvoicesPageState extends State<NewInvoicesPage> {
 
   Future<void> _saveInvoice() async {
     if (_formKey.currentState!.validate() && _selectedContact != null) {
-      int refInvoice;
+      try {
+        final ref = _action == 'Sell'
+            ? await InvoiceDatabase.instance.getNextSellRefInvoice()
+            : await InvoiceDatabase.instance.getNextBuyRefInvoice();
 
-      if (_action == 'Sell') {
-        refInvoice = await InvoiceDatabase.instance.getNextSellRefInvoice();
-      } else {
-        refInvoice = await InvoiceDatabase.instance.getNextBuyRefInvoice();
-      }
-
-      final invoice = Invoice(
-        refInvoice: refInvoice,
-        date: DateTime.now(),
-        total: double.tryParse(_totalController.text) ?? 0.0,
-        action: _action,
-        paymentMethod: _paymentMethod,
-        contactId: _selectedContact!.id!,
-      );
-
-      final invoiceId = await InvoiceDatabase.instance.createInvoice(invoice);
-
-      if (invoiceId != 0) {
-        for (var detail in _invoiceDetails) {
-          detail.invoiceId = invoiceId;
-          await _invoiceDetailDatabase.insertInvoiceDetail(detail);
-        }
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Invoice saved!')),
+        final invoice = Invoice(
+          refInvoice: ref,
+          date: DateTime.now(),
+          total: double.tryParse(_totalController.text) ?? 0.0,
+          action: _action,
+          paymentMethod: _paymentMethod,
+          contactId: _selectedContact!.id!,
         );
 
-        _formKey.currentState!.reset();
-        setState(() {
-          _selectedContact = null;
-          _paymentMethod = 'TPE';
-          _action = 'Sell';
-          _totalController.text = '0.00';
-          _invoiceDetails = [];
-        });
-      } else {
+        final invoiceId = await InvoiceDatabase.instance.createInvoice(invoice);
+
+        if (invoiceId != 0) {
+          for (var detail in _invoiceDetails) {
+            detail.invoiceId = invoiceId;
+            await _invoiceDetailDatabase.insertInvoiceDetail(detail);
+          }
+
+          // Trigger the callback before popping
+          if (widget.onInvoiceCreated != null) {
+            widget.onInvoiceCreated!();
+          }
+
+          Navigator.pop(context, true); // ✅ Notify previous screen
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Error saving invoice')),
+          );
+        }
+      } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Error saving invoice')),
+          SnackBar(content: Text('Error: ${e.toString()}')),
         );
       }
     }
@@ -225,52 +223,52 @@ class _NewInvoicesPageState extends State<NewInvoicesPage> {
         color: Colors.grey[300],
       ),
       child: Stack(
-          children: [
-      AnimatedAlign(
-      duration: const Duration(milliseconds: 250),
-      alignment: _action == 'Sell' ? Alignment.centerLeft : Alignment.centerRight,
-      child: Container(
-        width: 70,
-        height: 40,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          color: Colors.blue,
-        ),
-      ),
-    ),
-    Row(
-    children: [
-    Expanded(
-    child: GestureDetector(
-    onTap: () => setState(() => _action = 'Sell'),
-    child: Center(
-    child: Text(
-    'Sell',
-    style: TextStyle(
-    color: _action == 'Sell' ? Colors.white : Colors.grey[300],
-    fontWeight: FontWeight.bold,
-    ),
-    ),
-    ),
-    ),
-    ),
-    Expanded(
-    child: GestureDetector(
-    onTap: () => setState(() => _action = 'Buy'),
-      child: Center(
-        child: Text(
-          'Buy',
-          style: TextStyle(
-            color: _action == 'Buy' ? Colors.white : Colors.grey[300],
-            fontWeight: FontWeight.bold,
+        children: [
+          AnimatedAlign(
+            duration: const Duration(milliseconds: 250),
+            alignment: _action == 'Sell' ? Alignment.centerLeft : Alignment.centerRight,
+            child: Container(
+              width: 70,
+              height: 40,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                color: Colors.blue,
+              ),
+            ),
           ),
-        ),
-      ),
-    ),
-    ),
-    ],
-    ),
-          ],
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => setState(() => _action = 'Sell'),
+                  child: Center(
+                    child: Text(
+                      'Sell',
+                      style: TextStyle(
+                        color: _action == 'Sell' ? Colors.white : Colors.grey[300],
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => setState(() => _action = 'Buy'),
+                  child: Center(
+                    child: Text(
+                      'Buy',
+                      style: TextStyle(
+                        color: _action == 'Buy' ? Colors.white : Colors.grey[300],
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -348,49 +346,49 @@ class _NewInvoicesPageState extends State<NewInvoicesPage> {
                     final detail = _invoiceDetails[index];
                     final item = _invoiceDetails[index];
                     return Dismissible(
-                        key: Key(item.hashCode.toString()),
-                        direction: DismissDirection.endToStart,
+                      key: Key(item.hashCode.toString()),
+                      direction: DismissDirection.endToStart,
 
-                        child: GestureDetector(
-                          onHorizontalDragEnd: (details) {
-                            final dragDistance = details.primaryVelocity;
-                            if (dragDistance != null && dragDistance > 0) {
-                              setState(() {
-                                detail.quantity += 5;
-                                _updateTotal();
-                              });
-                            }else{
-                              setState(() {
-                                _invoiceDetails.removeAt(index);
-                                _updateTotal();
-                              });
-                            }
+                      child: GestureDetector(
+                        onHorizontalDragEnd: (details) {
+                          final dragDistance = details.primaryVelocity;
+                          if (dragDistance != null && dragDistance > 0) {
+                            setState(() {
+                              detail.quantity += 5;
+                              _updateTotal();
+                            });
+                          }else{
+                            setState(() {
+                              _invoiceDetails.removeAt(index);
+                              _updateTotal();
+                            });
+                          }
+                        },
+                        child: ListTile(
+                          onTap: () {
+                            setState(() {
+                              detail.quantity += 1;
+                              _updateTotal();
+                            });
                           },
-                          child: ListTile(
-                            onTap: () {
-                              setState(() {
-                                detail.quantity += 1;
-                                _updateTotal();
-                              });
-                            },
-                            onLongPress: () {
-                              setState(() {
-                                detail.quantity = 0;
-                                _updateTotal();
-                              });
-                            },
-                            contentPadding:
-                            const EdgeInsets.symmetric(horizontal: 16.0),
-                            title: Text(detail.description),
-                            subtitle: Text('Qty: ${detail.quantity}'),
-                            trailing: Text(
-                              '${(detail.quantity * detail.price)
-                                  .toStringAsFixed(2)} €',
-                              style: const TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.bold),
-                            ),
+                          onLongPress: () {
+                            setState(() {
+                              detail.quantity = 0;
+                              _updateTotal();
+                            });
+                          },
+                          contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 16.0),
+                          title: Text(detail.description),
+                          subtitle: Text('Qty: ${detail.quantity}'),
+                          trailing: Text(
+                            '${(detail.quantity * detail.price)
+                                .toStringAsFixed(2)} €',
+                            style: const TextStyle(
+                                fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                         ),
+                      ),
                     );
                   },
                 ),
@@ -433,6 +431,4 @@ class _NewInvoicesPageState extends State<NewInvoicesPage> {
     );
   }
 }
-
-//TODO: when user tap return button redirect to the invoicesPage
 //TODO: insted of create button change to save and add print button and share(pdf) button

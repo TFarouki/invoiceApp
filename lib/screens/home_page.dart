@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'contacts.dart';
-import 'products.dart';
 import '../database/contact_database.dart';
 import '../database/product_database.dart';
 import '../database/invoice_database.dart';
 import 'new_invoices.dart';
+import 'new_contact.dart';
+import 'new_product.dart';
 
 class HomePage extends StatefulWidget {
   final void Function(int) onTabSelected;
@@ -117,31 +117,48 @@ class _HomePageState extends State<HomePage> {
             _buildQuickActionItem(
               title: 'Create New Invoice',
               icon: Icons.receipt_long_outlined,
-              onTap: () {
-                _buildQuickActionItem(
-                  title: 'Create New Invoice',
-                  icon: Icons.receipt_long_outlined,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => NewInvoicesPage()),
-                    );
-                  },
+              onTap: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => NewInvoicesPage(onInvoiceCreated: () {}),
+                  ),
                 );
+                if (result == true) {
+                  widget.onTabSelected(3); // Make sure 3 is the correct index for Invoices tab
+                }
               },
             ),
             _buildQuickActionItem(
               title: 'Add New Contact',
               icon: Icons.person_add_outlined,
-              onTap: ()  {
-                widget.onTabSelected(1);
+              onTap: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => NewContactPage(onContactAdded: () {}),
+                  ),
+                );
+
+                if (result == true) {
+                  widget.onTabSelected(1); // 1 should be your Contacts tab index
+                }
               },
             ),
             _buildQuickActionItem(
               title: 'Add New Product',
               icon: Icons.add_box_outlined,
-              onTap: ()  {
-                widget.onTabSelected(2);
+              onTap: () async {
+                final result = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => NewProductPage(onProductAdded: () {}),
+                  ),
+                );
+
+                if (result == true) {
+                  widget.onTabSelected(2); // 2 should be your Products tab index
+                }
               },
             ),
           ],

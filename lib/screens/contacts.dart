@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import '../models/contact.dart';
-import '../database/contact_database.dart'; // Assuming you have a ContactDatabase for CRUD operations
+import '../database/contact_database.dart';
+import 'new_contact.dart';
 
 class ContactsPage extends StatefulWidget {
   @override
@@ -8,7 +10,7 @@ class ContactsPage extends StatefulWidget {
 }
 
 class _ContactsPageState extends State<ContactsPage> {
-  final ContactDatabase _contactDatabase = ContactDatabase(); // You should have this class for DB operations
+  final ContactDatabase _contactDatabase = ContactDatabase();
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _addressController = TextEditingController();
@@ -17,6 +19,7 @@ class _ContactsPageState extends State<ContactsPage> {
   final _sirenController = TextEditingController();
 
   List<Contact> _contacts = [];
+  Set<int> _expandedIds = {};
 
   @override
   void initState() {
@@ -66,120 +69,90 @@ class _ContactsPageState extends State<ContactsPage> {
       appBar: AppBar(title: Text('Contacts')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: SingleChildScrollView(
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                ExpansionTile(
-                  title: Text('Add New Contact'),
+        child: _contacts.isEmpty
+            ? Center(child: Text('No contacts yet.'))
+            : ListView.builder(
+          itemCount: _contacts.length,
+          itemBuilder: (context, index) {
+            final contact = _contacts[index];
+            final isExpanded = _expandedIds.contains(contact.id);
+
+            return Dismissible(
+              key: ValueKey(contact.id),
+              direction: DismissDirection.endToStart,
+              background: Container(
+                color: Colors.red,
+                alignment: Alignment.centerRight,
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: Icon(Icons.delete, color: Colors.white),
+              ),
+              onDismissed: (_) async {
+                final removed = contact;
+                await _deleteContact(contact.id!);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('${removed.name} deleted'),
+                    action: SnackBarAction(
+                      label: 'UNDO',
+                      onPressed: () async {
+                        await _contactDatabase.insertContact(removed);
+                        _loadContacts();
+                      },
+                    ),
+                  ),
+                );
+              },
+              child: Card(
+                margin: EdgeInsets.symmetric(vertical: 8.0),
+                child: Column(
                   children: [
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: InputDecoration(labelText: 'Contact Name'),
-                      validator: (value) => value!.isEmpty ? 'Please enter a name' : null,
-                    ),
-                    TextFormField(
-                      controller: _addressController,
-                      decoration: InputDecoration(labelText: 'Address'),
-                    ),
-                    TextFormField(
-                      controller: _phoneNumberController,
-                      decoration: InputDecoration(labelText: 'Phone Number'),
-                      keyboardType: TextInputType.phone,
-                    ),
-                    TextFormField(
-                      controller: _emailController,
-                      decoration: InputDecoration(labelText: 'Email'),
-                      keyboardType: TextInputType.emailAddress,
-                    ),
-                    TextFormField(
-                      controller: _sirenController,
-                      decoration: InputDecoration(labelText: 'SIREN'),
-                      keyboardType: TextInputType.number,
-                    ),
-                    SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _addContact,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10.0),
-                          ),
-                          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                          textStyle: TextStyle(fontSize: 18),
-                        ),
-                        child: Text('Add Contact'),
+                    ListTile(
+                      leading: Icon(Icons.person, size: 40, color: Colors.blue),
+                      title: Text(contact.name, style: TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: Text('SIREN: ${contact.siren ?? 'Not Available'}'),
+                      trailing: IconButton(
+                        icon: Icon(isExpanded ? Icons.expand_less : Icons.expand_more),
+                        onPressed: () {
+                          setState(() {
+                            if (isExpanded) {
+                              _expandedIds.remove(contact.id);
+                            } else {
+                              _expandedIds.add(contact.id!);
+                            }
+                          });
+                        },
                       ),
-                    )
-                  ],
-                ),
-                SizedBox(height: 16),
-                _contacts.isEmpty
-                    ? Center(child: Text('No contacts yet.'))
-                    : ListView.builder(
-                  shrinkWrap: true,
-                  physics: NeverScrollableScrollPhysics(),
-                  itemCount: _contacts.length,
-                  itemBuilder: (context, index) {
-                    final contact = _contacts[index];
-                    return Card(
-                      margin: EdgeInsets.symmetric(vertical: 8.0),
-                      child: ExpansionTile(
-                        title: Row(
+                    ),
+                    if (isExpanded)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(Icons.person, size: 60.0, color: Colors.blue),
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      contact.name,
-                                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16.0),
-                                    ),
-                                    Text(
-                                      'SIREN: ${contact.siren ?? 'Not Available'}',
-                                      style: TextStyle(fontSize: 14.0),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                            IconButton(
-                              icon: Icon(Icons.delete, color: Colors.red),
-                              onPressed: () => _deleteContact(contact.id!), // Adjust this to your delete method
-                            ),
+                            if (contact.address != null)
+                              Text('Address: ${contact.address!}'),
+                            if (contact.phoneNumber != null)
+                              Text('Phone: ${contact.phoneNumber!}'),
+                            if (contact.email != null)
+                              Text('Email: ${contact.email!}'),
                           ],
                         ),
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (contact.address != null) Text('Address: ${contact.address!}'),
-                                if (contact.phoneNumber != null) Text('Phone: ${contact.phoneNumber!}'),
-                                if (contact.email != null) Text('Email: ${contact.email!}'),
-                                // Add more fields here if needed
-                              ],
-                            ),
-                          ),
-                        ],
                       ),
-                    );
-
-                  },
+                  ],
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => NewContactPage(onContactAdded: _loadContacts)),
+          );
+        },
+        child: Icon(Icons.add),
       ),
     );
   }
@@ -187,6 +160,3 @@ class _ContactsPageState extends State<ContactsPage> {
 
 //TODO: search bar
 //TODO: display as grid or table
-//TODO: change the delete button to a dismissible widget
-//TODO: add a new contact button as floating action button
-//TODO: move form to newContactPage

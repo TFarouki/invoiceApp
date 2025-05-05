@@ -6,6 +6,7 @@ import 'new_invoices.dart';
 import 'package:intl/intl.dart';
 
 
+
 class InvoicesPage extends StatefulWidget {
   const InvoicesPage({super.key});
 
@@ -26,9 +27,16 @@ class InvoicesPageState extends State<InvoicesPage> {
     _invoices = _invoiceDatabase.getAllInvoices();
     _contactsMap = _loadContactsMap();
   }
+
   Future<Map<int, String>> _loadContactsMap() async {
     final contacts = await ContactDatabase().getAllContacts(); // You need to have ContactDatabase
     return { for (var contact in contacts) contact.id!: contact.name };
+  }
+
+  String formatInvoiceRef(int refInvoice, bool action) {
+    final actionCode = action ? 'V' : 'A';
+    final formattedNumber = refInvoice.toString().padLeft(6, '0');
+    return 'Fa$actionCode$formattedNumber';
   }
 
   @override
@@ -57,7 +65,6 @@ class InvoicesPageState extends State<InvoicesPage> {
                 final invoice = invoices[index];
                 final bool isSell = invoice.action == 'Sell';
                 final clientName = contactsMap[invoice.contactId] ?? 'Unknown Client';
-                //String formattedDate = DateFormat('dd-MM-yyyy').format(DateTime.parse(invoice.date));
 
                 return _buildInvoiceCard(
                   refInvoice: invoice.refInvoice,
@@ -72,15 +79,30 @@ class InvoicesPageState extends State<InvoicesPage> {
           }
         },
       ),
-
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
+        onPressed: () async {
+          final result = await Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => NewInvoicesPage()),
+            MaterialPageRoute(
+              builder: (context) => NewInvoicesPage(
+                onInvoiceCreated: () {
+                  // Refresh invoices list after new one is added
+                  setState(() {
+                    _invoices = _invoiceDatabase.getAllInvoices();
+                  });
+                },
+              ),
+            ),
           );
+
+          if (result == true) {
+            // Optionally reload invoices if the callback isn't enough
+            setState(() {
+              _invoices = _invoiceDatabase.getAllInvoices();
+            });
+          }
         },
-        child: Icon(Icons.add),
+        child: const Icon(Icons.add),
       ),
     );
   }
@@ -105,15 +127,13 @@ class InvoicesPageState extends State<InvoicesPage> {
           ),
           Expanded(
             child: ListTile(
-              title: Text(
-                refInvoice.toString(),
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-              ),
+              title:
+              Text(formatInvoiceRef(refInvoice, isSell),style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
               subtitle: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(clientName, style: TextStyle(color: Colors.grey)),
-                  Text(date.toLocal().toString(), style: TextStyle(color: Colors.grey)),
+                  Text(DateFormat('dd-MM-yyyy HH:mm').format(date), style: TextStyle(color: Colors.grey)),
                 ],
               ),
               trailing: Row(
@@ -158,5 +178,4 @@ class InvoicesPageState extends State<InvoicesPage> {
 
 //TODO: dismsable invoice
 //TODO: tap invoice to open (update or print)
-//TODO: after save new invoice return to this screen and refresh to display new invoice
 //TODO: tree and filters and search options
